@@ -8,6 +8,6 @@ package dao;
  *
  * @author PC
  */
-public class RoomDao {
+public class RoomDAO {
     
 }

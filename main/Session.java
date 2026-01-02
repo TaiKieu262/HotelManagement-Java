@@ -1,0 +1,8 @@
+
+package main;
+
+import model.User;
+
+public class Session {
+    public static User currentUser;
+}

@@ -11,7 +11,8 @@ public class PaymentDAO {
     // 1. Lấy danh sách thanh toán (getAll)
     public List<Payment> getAll() {
         List<Payment> list = new ArrayList<>();
-        String sql = "SELECT * FROM payments";
+        // Join bảng bookings để lấy room_id hiển thị ra bảng
+        String sql = "SELECT p.*, b.room_id FROM payments p JOIN bookings b ON p.booking_id = b.id";
         
         try (Connection conn = DBConnection.getConnection();
              Statement stmt = conn.createStatement();
@@ -24,6 +25,7 @@ public class PaymentDAO {
                 p.setAmount(rs.getDouble("amount"));
                 p.setPaymentDate(rs.getDate("payment_date"));
                 p.setStatus(rs.getString("status"));
+                p.setRoomId(rs.getInt("room_id")); // Lưu room_id vào model
                 list.add(p);
             }
         } catch (Exception e) {
@@ -87,7 +89,7 @@ public class PaymentDAO {
     
     // 5. Tìm kiếm theo ID (findById)
     public Payment findById(int id) {
-        String sql = "SELECT * FROM payments WHERE id = ?";
+        String sql = "SELECT p.*, b.room_id FROM payments p JOIN bookings b ON p.booking_id = b.id WHERE p.id = ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
@@ -100,6 +102,7 @@ public class PaymentDAO {
                 p.setAmount(rs.getDouble("amount"));
                 p.setPaymentDate(rs.getDate("payment_date"));
                 p.setStatus(rs.getString("status"));
+                p.setRoomId(rs.getInt("room_id"));
                 return p;
             }
         } catch (Exception e) {
@@ -142,5 +145,26 @@ public class PaymentDAO {
             e.printStackTrace();
         }
         return 0;
+    }
+
+    // 7. Tìm thông tin Booking mới nhất dựa trên Room ID
+    // Trả về đối tượng Payment chứa bookingId và amount (tạm dùng để chuyển dữ liệu)
+    public Payment getBookingInfoByRoomId(int roomId) {
+        // Lấy booking mới nhất (ID lớn nhất) của phòng đó
+        String sql = "SELECT b.id, r.price * DATEDIFF(b.check_out, b.check_in) AS total_price " +
+                     "FROM bookings b JOIN rooms r ON b.room_id = r.id " +
+                     "WHERE r.id = ? ORDER BY b.id DESC LIMIT 1";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, roomId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return new Payment(0, rs.getInt("id"), rs.getDouble("total_price"), null, "unpaid");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 }

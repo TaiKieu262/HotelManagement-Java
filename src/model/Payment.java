@@ -8,6 +8,7 @@ public class Payment {
     private double amount; // Tổng tiền
     private Date paymentDate;
     private String status; // paid | unpaid
+    private int roomId; // Thêm trường này để hiển thị Room ID
 
     public Payment() {
     }
@@ -58,6 +59,14 @@ public class Payment {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+    
+    public int getRoomId() {
+        return roomId;
+    }
+
+    public void setRoomId(int roomId) {
+        this.roomId = roomId;
     }
     
     // Hàm hiển thị trạng thái tiếng Việt

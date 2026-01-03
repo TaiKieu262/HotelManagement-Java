@@ -9,6 +9,9 @@ import javax.swing.JOptionPane;
 
 public class PaymentForm extends javax.swing.JFrame {
 
+    // Biến lưu Booking ID ẩn (vì đã xóa ô nhập Booking ID)
+    private int currentBookingId = 0;
+
     public PaymentForm() {
         initComponents();
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
@@ -18,11 +21,11 @@ public class PaymentForm extends javax.swing.JFrame {
         // Mặc định ngày hiện tại
         txtNgay.setText(new java.sql.Date(System.currentTimeMillis()).toString());
         
-        // Thêm sự kiện: Khi nhập xong Booking ID (rời chuột hoặc Tab đi), tự động lấy giá phòng
-        txtBookingId.addFocusListener(new java.awt.event.FocusAdapter() {
+        // Thêm sự kiện: Khi nhập xong Room ID, tự động tìm Booking ID và Giá tiền
+        txtRoomId.addFocusListener(new java.awt.event.FocusAdapter() {
             public void focusLost(java.awt.event.FocusEvent evt) {
-                if (!txtBookingId.getText().trim().isEmpty()) {
-                    loadBookingInfo();
+                if (!txtRoomId.getText().trim().isEmpty()) {
+                    loadBookingByRoom();
                 }
             }
         });
@@ -37,7 +40,7 @@ public class PaymentForm extends javax.swing.JFrame {
         for (Payment p : list) {
             model.addRow(new Object[]{
                 p.getId(),
-                p.getBookingId(),
+                p.getRoomId(), // Hiển thị Room ID thay vì Booking ID
                 p.getAmountHienThi(),
                 p.getPaymentDate(),
                 p.getStatusHienThi()
@@ -45,18 +48,21 @@ public class PaymentForm extends javax.swing.JFrame {
         }
     }
 
-    // Hàm tìm kiếm thông tin Booking và điền giá phòng
-    private void loadBookingInfo() {
+    // Hàm tìm kiếm thông tin từ Room ID
+    private void loadBookingByRoom() {
         try {
-            int bookingId = Integer.parseInt(txtBookingId.getText().trim());
+            int roomId = Integer.parseInt(txtRoomId.getText().trim());
             PaymentDAO dao = new PaymentDAO();
-            double price = dao.getBookingRoomPrice(bookingId);
+            Payment p = dao.getBookingInfoByRoomId(roomId);
             
-            if (price > 0) {
-                txtTienPhong.setText(String.format("%.0f", price));
+            if (p != null) {
+                currentBookingId = p.getBookingId(); // Lưu Booking ID vào biến ẩn
+                txtTienPhong.setText(p.getAmountHienThi());
+            } else {
+                JOptionPane.showMessageDialog(this, "Không tìm thấy Booking nào cho phòng này!");
             }
         } catch (NumberFormatException e) {
-            // Bỏ qua nếu nhập sai định dạng số
+            // Bỏ qua lỗi định dạng
         }
     }
 
@@ -66,8 +72,6 @@ public class PaymentForm extends javax.swing.JFrame {
         jLabel1 = new javax.swing.JLabel();
         jLabel2 = new javax.swing.JLabel();
         txtId = new javax.swing.JTextField();
-        jLabel3 = new javax.swing.JLabel();
-        txtBookingId = new javax.swing.JTextField();
         jLabel4 = new javax.swing.JLabel();
         txtTienPhong = new javax.swing.JTextField();
         jLabel5 = new javax.swing.JLabel();
@@ -85,6 +89,8 @@ public class PaymentForm extends javax.swing.JFrame {
         btnSua = new javax.swing.JButton();
         btnXoa = new javax.swing.JButton();
         btnThoat = new javax.swing.JButton();
+        jLabel9 = new javax.swing.JLabel();
+        txtRoomId = new javax.swing.JTextField();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Quản lý Thanh Toán");
@@ -93,7 +99,6 @@ public class PaymentForm extends javax.swing.JFrame {
         jLabel1.setText("THANH TOÁN");
 
         jLabel2.setText("Mã thanh toán (ID):");
-        jLabel3.setText("Mã đặt phòng (Booking ID):");
         jLabel4.setText("Tiền phòng:");
         jLabel5.setText("Tiền dịch vụ:");
         
@@ -117,7 +122,7 @@ public class PaymentForm extends javax.swing.JFrame {
 
         jTable1.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {},
-            new String [] { "ID", "Booking ID", "Tổng tiền", "Ngày TT", "Trạng thái" }
+            new String [] { "ID", "Room ID", "Tổng tiền", "Ngày TT", "Trạng thái" }
         ));
         jTable1.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
@@ -126,7 +131,7 @@ public class PaymentForm extends javax.swing.JFrame {
         });
         jScrollPane1.setViewportView(jTable1);
 
-        btnThem.setText("Thanh toán (Lưu)");
+        btnThem.setText("Thanh toán");
         btnThem.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 btnThemActionPerformed(evt);
@@ -154,6 +159,8 @@ public class PaymentForm extends javax.swing.JFrame {
             }
         });
 
+        jLabel9.setText("Mã phòng (Room ID):");
+
         // Layout code (được rút gọn để dễ nhìn, NetBeans sẽ tự sinh chi tiết hơn)
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -165,13 +172,13 @@ public class PaymentForm extends javax.swing.JFrame {
                     .addComponent(jScrollPane1)
                     .addGroup(layout.createSequentialGroup()
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jLabel3)
+                            .addComponent(jLabel9)
                             .addComponent(jLabel2)
                             .addComponent(jLabel4)
                             .addComponent(jLabel5))
                         .addGap(18, 18, 18)
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addComponent(txtBookingId)
+                            .addComponent(txtRoomId)
                             .addComponent(txtId)
                             .addComponent(txtTienPhong)
                             .addComponent(txtTienDichVu, javax.swing.GroupLayout.DEFAULT_SIZE, 150, Short.MAX_VALUE))
@@ -209,14 +216,14 @@ public class PaymentForm extends javax.swing.JFrame {
                 .addComponent(jLabel1)
                 .addGap(18, 18, 18)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel3)
-                    .addComponent(txtBookingId, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel7)
-                    .addComponent(txtNgay, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(jLabel9)
+                    .addComponent(txtRoomId, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addGap(18, 18, 18)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel2)
                     .addComponent(txtId, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel7)
+                    .addComponent(txtNgay, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel8)
                     .addComponent(cboStatus, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addGap(18, 18, 18)
@@ -259,14 +266,14 @@ public class PaymentForm extends javax.swing.JFrame {
 
     // Nút Thêm (Thanh toán)
     private void btnThemActionPerformed(java.awt.event.ActionEvent evt) {
-        if (txtId.getText().isEmpty() || txtBookingId.getText().isEmpty() || txtTongTien.getText().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập ID, Booking ID và Tính tổng tiền!");
+        if (txtId.getText().isEmpty() || currentBookingId == 0 || txtTongTien.getText().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Vui lòng nhập ID, Room ID (để tìm Booking) và Tính tổng tiền!");
             return;
         }
         try {
             Payment p = new Payment();
             p.setId(Integer.parseInt(txtId.getText().trim()));
-            p.setBookingId(Integer.parseInt(txtBookingId.getText().trim()));
+            p.setBookingId(currentBookingId); // Sử dụng ID ẩn
             p.setAmount(Double.parseDouble(txtTongTien.getText().trim().replace(",", "")));
             p.setPaymentDate(Date.valueOf(txtNgay.getText().trim())); // Định dạng yyyy-mm-dd
             p.setStatus(cboStatus.getSelectedItem().toString().toLowerCase());
@@ -294,7 +301,7 @@ public class PaymentForm extends javax.swing.JFrame {
         try {
             Payment p = new Payment();
             p.setId(Integer.parseInt(txtId.getText().trim())); // ID dùng để tìm dòng update
-            p.setBookingId(Integer.parseInt(txtBookingId.getText().trim()));
+            p.setBookingId(currentBookingId); // Sử dụng ID ẩn
             p.setAmount(Double.parseDouble(txtTongTien.getText().trim().replace(",", "")));
             p.setPaymentDate(Date.valueOf(txtNgay.getText().trim()));
             p.setStatus(cboStatus.getSelectedItem().toString().toLowerCase());
@@ -330,8 +337,18 @@ public class PaymentForm extends javax.swing.JFrame {
 
     private void jTable1MouseClicked(java.awt.event.MouseEvent evt) {
         int row = jTable1.getSelectedRow();
-        txtId.setText(jTable1.getValueAt(row, 0).toString());
-        txtBookingId.setText(jTable1.getValueAt(row, 1).toString());
+        // Lấy ID thanh toán từ bảng
+        int id = Integer.parseInt(jTable1.getValueAt(row, 0).toString());
+        txtId.setText(String.valueOf(id));
+        
+        // Tìm lại thông tin đầy đủ từ CSDL để lấy Booking ID ẩn
+        PaymentDAO dao = new PaymentDAO();
+        Payment p = dao.findById(id);
+        if (p != null) {
+            currentBookingId = p.getBookingId();
+            txtRoomId.setText(String.valueOf(p.getRoomId()));
+        }
+        
         txtTongTien.setText(jTable1.getValueAt(row, 2).toString().replace(",", ""));
         txtNgay.setText(jTable1.getValueAt(row, 3).toString());
         
@@ -345,7 +362,8 @@ public class PaymentForm extends javax.swing.JFrame {
     
     private void clearForm() {
         txtId.setText("");
-        txtBookingId.setText("");
+        currentBookingId = 0;
+        txtRoomId.setText("");
         txtTienPhong.setText("");
         txtTienDichVu.setText("");
         txtTongTien.setText("");
@@ -395,17 +413,17 @@ public class PaymentForm extends javax.swing.JFrame {
     private javax.swing.JComboBox<String> cboStatus;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
-    private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel6;
     private javax.swing.JLabel jLabel7;
     private javax.swing.JLabel jLabel8;
+    private javax.swing.JLabel jLabel9;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JTable jTable1;
-    private javax.swing.JTextField txtBookingId;
     private javax.swing.JTextField txtId;
     private javax.swing.JTextField txtNgay;
+    private javax.swing.JTextField txtRoomId;
     private javax.swing.JTextField txtTienDichVu;
     private javax.swing.JTextField txtTienPhong;
     private javax.swing.JTextField txtTongTien;
